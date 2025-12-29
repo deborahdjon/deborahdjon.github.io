@@ -918,8 +918,19 @@
                 showColorSelector(card);
             } else {
                 discardPile.push(card);
-                executeCardAction(card);
-                checkWin();
+
+                // If player now has 1 card, give them time to call UNO
+                if (players[playerIndex].hand.length === 1) {
+                    updateUI();
+                    showMessage(`You have 1 card left! Call UNO or your turn will end in 3 seconds...`, 'warning');
+                    setTimeout(() => {
+                        executeCardAction(card);
+                        checkWin();
+                    }, 3000); // 3 second delay to call UNO
+                } else {
+                    executeCardAction(card);
+                    checkWin();
+                }
             }
         }
 
@@ -1067,8 +1078,18 @@
                         skipNext = true;
                     }
 
-                    executeCardAction(card);
-                    checkWin();
+                    // If player now has 1 card, give them time to call UNO
+                    if (players[currentPlayer].hand.length === 1) {
+                        updateUI();
+                        showMessage(`You have 1 card left! Call UNO or your turn will end in 3 seconds...`, 'warning');
+                        setTimeout(() => {
+                            executeCardAction(card);
+                            checkWin();
+                        }, 3000); // 3 second delay to call UNO
+                    } else {
+                        executeCardAction(card);
+                        checkWin();
+                    }
                 };
                 selector.appendChild(div);
             });
@@ -1125,19 +1146,26 @@
         }
 
         function callUno() {
-            if (players[currentPlayer].hand.length === 2) {
+            if (players[currentPlayer].hand.length === 1) {
                 players[currentPlayer].calledUno = true;
                 showMessage(`${players[currentPlayer].name} called UNO!`, 'success');
             } else {
-                showMessage(`You don't have 2 cards!`, 'warning');
+                showMessage(`You need exactly 1 card to call UNO!`, 'warning');
             }
         }
 
         function checkWin() {
-            players.forEach((player, index) => {
-                if (player.hand.length === 0) {
+            // Check for winners FIRST - if someone won, don't apply UNO penalties
+            for (let index = 0; index < players.length; index++) {
+                if (players[index].hand.length === 0) {
                     showWinner(index);
-                } else if (player.hand.length === 1 && !player.calledUno) {
+                    return; // Exit immediately - game is over!
+                }
+            }
+
+            // Only check UNO penalties if no one won
+            players.forEach((player, index) => {
+                if (player.hand.length === 1 && !player.calledUno) {
                     showMessage(`${player.name} forgot to call UNO! Drawing 2 cards!`, 'warning');
                     drawMultiple(index, 2);
                 }
