@@ -924,12 +924,16 @@
                     updateUI();
                     showMessage(`You have 1 card left! Call UNO or your turn will end in 3 seconds...`, 'warning');
                     setTimeout(() => {
-                        executeCardAction(card);
-                        checkWin();
+                        if (!checkWin()) { // Check for winner first
+                            executeCardAction(card);
+                            checkWin(); // Check again after executing
+                        }
                     }, 3000); // 3 second delay to call UNO
                 } else {
-                    executeCardAction(card);
-                    checkWin();
+                    if (!checkWin()) { // Check for winner first
+                        executeCardAction(card);
+                        checkWin(); // Check again after executing
+                    }
                 }
             }
         }
@@ -993,6 +997,7 @@
                 flipAllCards();
                 // Show flipped cards for 2 seconds before next turn
                 setTimeout(() => {
+                    checkUnoViolations(); // Check UNO before advancing turn
                     if (!skipNext) {
                         nextTurn();
                     } else {
@@ -1005,6 +1010,7 @@
                 return; // Exit early, turn change is delayed
             }
 
+            checkUnoViolations(); // Check UNO before advancing turn
             if (!skipNext) {
                 nextTurn();
             } else {
@@ -1083,12 +1089,16 @@
                         updateUI();
                         showMessage(`You have 1 card left! Call UNO or your turn will end in 3 seconds...`, 'warning');
                         setTimeout(() => {
-                            executeCardAction(card);
-                            checkWin();
+                            if (!checkWin()) { // Check for winner first
+                                executeCardAction(card);
+                                checkWin(); // Check again after executing
+                            }
                         }, 3000); // 3 second delay to call UNO
                     } else {
-                        executeCardAction(card);
-                        checkWin();
+                        if (!checkWin()) { // Check for winner first
+                            executeCardAction(card);
+                            checkWin(); // Check again after executing
+                        }
                     }
                 };
                 selector.appendChild(div);
@@ -1154,22 +1164,25 @@
             }
         }
 
-        function checkWin() {
-            // Check for winners FIRST - if someone won, don't apply UNO penalties
-            for (let index = 0; index < players.length; index++) {
-                if (players[index].hand.length === 0) {
-                    showWinner(index);
-                    return; // Exit immediately - game is over!
-                }
-            }
-
-            // Only check UNO penalties if no one won
+        function checkUnoViolations() {
+            // Check for UNO penalties - must be called BEFORE nextTurn() resets calledUno flags
             players.forEach((player, index) => {
                 if (player.hand.length === 1 && !player.calledUno) {
                     showMessage(`${player.name} forgot to call UNO! Drawing 2 cards!`, 'warning');
                     drawMultiple(index, 2);
                 }
             });
+        }
+
+        function checkWin() {
+            // Check for winners
+            for (let index = 0; index < players.length; index++) {
+                if (players[index].hand.length === 0) {
+                    showWinner(index);
+                    return true; // Exit immediately - game is over!
+                }
+            }
+            return false; // Game continues
         }
 
         function showWinner(playerIndex) {
@@ -1238,8 +1251,10 @@
                     discardPile.push(card);
                 }
 
-                executeCardAction(card);
-                checkWin();
+                if (!checkWin()) { // Check for winner first
+                    executeCardAction(card);
+                    checkWin(); // Check again after executing
+                }
             } else {
                 if (deck.length === 0) reshuffleDeck();
                 const drawnCard = deck.pop();
@@ -1280,9 +1295,12 @@
                             discardPile.push(drawnCard);
                         }
 
-                        executeCardAction(drawnCard);
-                        checkWin();
+                        if (!checkWin()) { // Check for winner first
+                            executeCardAction(drawnCard);
+                            checkWin(); // Check again after executing
+                        }
                     } else {
+                        checkUnoViolations(); // Check UNO before advancing turn
                         nextTurn();
                         updateUI();
                     }
