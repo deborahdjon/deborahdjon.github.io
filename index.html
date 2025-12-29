@@ -883,6 +883,8 @@
 
             hasDrawnThisTurn = false;
             document.getElementById('endTurnBtn').style.display = 'none';
+            lastTurnPlayer = currentPlayer; // Remember who is ending their turn
+            checkUnoViolations(); // Check UNO before advancing turn
             nextTurn();
             updateUI();
         }
