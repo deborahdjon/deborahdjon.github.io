@@ -140,9 +140,42 @@
             color: white;
         }
 
+        .card-wild {
+            background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 25%, #95e1d3 50%, #ffe66d 75%, #ff6b6b 100%);
+            color: white;
+            border: 3px solid #333;
+        }
+
         .card-hidden {
             background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
             color: white;
+        }
+
+        .turn-reveal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .turn-reveal-overlay h2 {
+            color: white;
+            font-size: 2em;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .turn-reveal-overlay .button {
+            font-size: 1.2em;
+            padding: 15px 40px;
         }
 
         .card-light {
@@ -559,6 +592,12 @@
 
         <div id="playersContainer"></div>
 
+        <!-- Turn Reveal Overlay -->
+        <div id="turnRevealOverlay" class="turn-reveal-overlay" style="display: none;">
+            <h2 id="turnRevealText">Player 2's Turn</h2>
+            <button class="button button-success" onclick="revealTurn()">Show My Cards</button>
+        </div>
+
         <!-- Color Selection Modal -->
         <div id="colorModal" class="modal">
             <div class="modal-content">
@@ -643,6 +682,7 @@
         let direction = 1;
         let skipNext = false;
         let hasDrawnThisTurn = false;
+        let turnRevealed = true; // Track if current player has revealed their cards
 
         // Settings
         let settings = {
@@ -757,10 +797,12 @@
             direction = 1;
             skipNext = false;
             hasDrawnThisTurn = false;
+            turnRevealed = true;
 
             dealCards();
             hideModal('gameOverModal');
             hideModal('settingsModal');
+            document.getElementById('turnRevealOverlay').style.display = 'none';
             updateUI();
             showMessage(`${players[0].name}'s turn!`, 'info');
 
@@ -809,10 +851,6 @@
             document.getElementById('endTurnBtn').style.display = 'none';
             nextTurn();
             updateUI();
-
-            if (players[currentPlayer].isAI) {
-                setTimeout(() => aiTakeTurn(), 1000);
-            }
         }
 
         function reshuffleDeck() {
@@ -895,10 +933,6 @@
             }
 
             updateUI();
-
-            if (players[currentPlayer].isAI) {
-                setTimeout(() => aiTakeTurn(), 1500);
-            }
         }
 
         function drawMultiple(playerIndex, count) {
@@ -990,7 +1024,35 @@
             hasDrawnThisTurn = false;
             document.getElementById('endTurnBtn').style.display = 'none';
             players.forEach(p => p.calledUno = false);
+
+            // Show turn reveal overlay for human players when hideOpponentCards is enabled
+            if (settings.hideOpponentCards && !players[currentPlayer].isAI) {
+                turnRevealed = false;
+                showTurnRevealOverlay();
+            } else {
+                turnRevealed = true;
+                showMessage(`${players[currentPlayer].name}'s turn!`, 'info');
+            }
+
+            // AI takes turn automatically
+            if (players[currentPlayer].isAI) {
+                setTimeout(() => aiTakeTurn(), 1000);
+            }
+        }
+
+        function showTurnRevealOverlay() {
+            const overlay = document.getElementById('turnRevealOverlay');
+            const text = document.getElementById('turnRevealText');
+            text.textContent = `${players[currentPlayer].name}'s Turn`;
+            overlay.style.display = 'flex';
+            updateUI();
+        }
+
+        function revealTurn() {
+            turnRevealed = true;
+            document.getElementById('turnRevealOverlay').style.display = 'none';
             showMessage(`${players[currentPlayer].name}'s turn!`, 'info');
+            updateUI();
         }
 
         function getCurrentPlayerIndex() {
@@ -1106,9 +1168,6 @@
                     } else {
                         nextTurn();
                         updateUI();
-                        if (players[currentPlayer].isAI) {
-                            setTimeout(() => aiTakeTurn(), 1000);
-                        }
                     }
                 }, 800);
             }
@@ -1162,7 +1221,7 @@
             if (card.color && colors.includes(card.color)) {
                 colorClass = `card-${card.color}`;
             } else if (card.type && (card.type.includes('wild') || card.type === 'flip')) {
-                colorClass = 'card-back';
+                colorClass = 'card-wild';
             }
 
             div.className = `card ${colorClass} card-${card.side}`;
@@ -1248,18 +1307,29 @@
                 const handDiv = document.createElement('div');
                 handDiv.className = 'hand';
 
-                const shouldHideCards = settings.hideOpponentCards && index !== currentPlayer && !player.isAI;
+                // Only show current player's hand if turn is revealed OR if hideOpponentCards is off
+                const shouldShowHand = !settings.hideOpponentCards || (index === currentPlayer && turnRevealed) || player.isAI;
 
-                player.hand.forEach((card, cardIndex) => {
-                    const cardElement = renderCard(
-                        card,
-                        index === currentPlayer && !player.isAI ? playCard : null,
-                        index,
-                        cardIndex,
-                        shouldHideCards
-                    );
-                    handDiv.appendChild(cardElement);
-                });
+                if (shouldShowHand) {
+                    player.hand.forEach((card, cardIndex) => {
+                        const cardElement = renderCard(
+                            card,
+                            index === currentPlayer && !player.isAI && turnRevealed ? playCard : null,
+                            index,
+                            cardIndex,
+                            false
+                        );
+                        handDiv.appendChild(cardElement);
+                    });
+                } else {
+                    // Show message instead of cards for hidden players
+                    const hiddenMsg = document.createElement('div');
+                    hiddenMsg.style.padding = '20px';
+                    hiddenMsg.style.color = '#999';
+                    hiddenMsg.style.fontStyle = 'italic';
+                    hiddenMsg.textContent = index === currentPlayer ? 'Tap "Show My Cards" to reveal' : 'Hidden';
+                    handDiv.appendChild(hiddenMsg);
+                }
 
                 section.appendChild(header);
                 section.appendChild(handDiv);
