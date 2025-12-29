@@ -684,6 +684,7 @@
         let skipNext = false;
         let hasDrawnThisTurn = false;
         let turnRevealed = true; // Track if current player has revealed their cards
+        let lastTurnPlayer = -1; // Track who took the last turn (to avoid showing overlay when same player continues)
 
         // Settings
         let settings = {
@@ -830,6 +831,7 @@
             skipNext = false;
             hasDrawnThisTurn = false;
             turnRevealed = true;
+            lastTurnPlayer = -1;
 
             dealCards();
             hideModal('gameOverModal');
@@ -967,6 +969,7 @@
 
         function executeCardAction(card) {
             const currentCardSide = card[currentSide];
+            lastTurnPlayer = currentPlayer; // Remember who is taking this action
 
             if (currentCardSide.type === 'skip') {
                 skipNext = true;
@@ -1121,12 +1124,14 @@
             document.getElementById('endTurnBtn').style.display = 'none';
             players.forEach(p => p.calledUno = false);
 
-            // Show turn reveal overlay for human players when hideOpponentCards is enabled
-            if (settings.hideOpponentCards && !players[currentPlayer].isAI) {
+            // Show turn reveal overlay only if it's a different player from who last acted
+            // This prevents the overlay from showing when a player gets another turn (e.g., Skip Everyone, or Skip/Reverse in 2-player)
+            if (settings.hideOpponentCards && !players[currentPlayer].isAI && currentPlayer !== lastTurnPlayer) {
                 turnRevealed = false;
                 showTurnRevealOverlay();
             } else {
                 turnRevealed = true;
+                document.getElementById('turnRevealOverlay').style.display = 'none'; // Hide overlay if same player continues
                 showMessage(`${players[currentPlayer].name}'s turn!`, 'info');
             }
 
