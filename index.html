@@ -922,9 +922,21 @@
                 skipNext = true;
             } else if (card.type === 'flip') {
                 flipDeck();
+                // Show flipped cards for 2 seconds before next turn
+                setTimeout(() => {
+                    if (!skipNext) {
+                        nextTurn();
+                    } else {
+                        skipNext = false;
+                        nextTurn();
+                        nextTurn();
+                    }
+                    updateUI();
+                }, 2000);
+                return; // Exit early, turn change is delayed
             }
 
-            if (!skipNext || card.type === 'flip') {
+            if (!skipNext) {
                 nextTurn();
             } else {
                 skipNext = false;
@@ -947,6 +959,10 @@
         function flipDeck() {
             currentSide = currentSide === 'light' ? 'dark' : 'light';
 
+            // Temporarily reveal all cards to show the flip
+            const wasRevealed = turnRevealed;
+            turnRevealed = true;
+
             players.forEach(player => {
                 player.hand = player.hand.map(card => flipCard(card));
             });
@@ -954,8 +970,10 @@
             discardPile = discardPile.map(card => flipCard(card));
             deck = deck.map(card => flipCard(card));
 
-            showMessage(`🔄 FLIP! Now playing ${currentSide} side!`, 'success');
+            showMessage(`🔄 FLIP! Now playing ${currentSide} side! All cards are flipped!`, 'success');
             updateUI();
+
+            // Note: turnRevealed will be reset by nextTurn() if needed
         }
 
         function flipCard(card) {
@@ -1218,10 +1236,20 @@
             const colors = currentSide === 'light' ? COLORS_LIGHT : COLORS_DARK;
 
             let colorClass = '';
-            if (card.color && colors.includes(card.color)) {
+
+            // Check if card matches current side
+            if (card.side !== currentSide) {
+                // Card is on wrong side - this shouldn't happen after flip, show as error
+                colorClass = 'card-hidden';
+                console.warn('Card side mismatch:', card, 'Current side:', currentSide);
+            } else if (card.color && colors.includes(card.color)) {
                 colorClass = `card-${card.color}`;
             } else if (card.type && (card.type.includes('wild') || card.type === 'flip')) {
                 colorClass = 'card-wild';
+            } else {
+                // Fallback for any other cards without proper color
+                colorClass = 'card-wild';
+                console.warn('Card without proper color:', card);
             }
 
             div.className = `card ${colorClass} card-${card.side}`;
@@ -1308,7 +1336,8 @@
                 handDiv.className = 'hand';
 
                 // Only show current player's hand if turn is revealed OR if hideOpponentCards is off
-                const shouldShowHand = !settings.hideOpponentCards || (index === currentPlayer && turnRevealed) || player.isAI;
+                // In hot-seat mode, hide ALL opponent cards (including AI)
+                const shouldShowHand = !settings.hideOpponentCards || (index === currentPlayer && turnRevealed);
 
                 if (shouldShowHand) {
                     player.hand.forEach((card, cardIndex) => {
