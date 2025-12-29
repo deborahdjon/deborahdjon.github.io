@@ -980,6 +980,10 @@
                 // Skip Everyone gives current player an extra turn (Wild side only)
                 showMessage(`Skip Everyone! You get another turn!`, 'success');
                 updateUI();
+                // If AI played Skip Everyone, trigger AI to take another turn
+                if (players[currentPlayer].isAI) {
+                    setTimeout(() => aiTakeTurn(), 1000);
+                }
                 return; // Don't advance turn
             } else if (currentCardSide.type === 'reverse') {
                 if (players.length === 2) {
@@ -1126,9 +1130,15 @@
             document.getElementById('endTurnBtn').style.display = 'none';
             players.forEach(p => p.calledUno = false);
 
-            // Show turn reveal overlay only if it's a different player from who last acted
-            // This prevents the overlay from showing when a player gets another turn (e.g., Skip Everyone, or Skip/Reverse in 2-player)
-            if (settings.hideOpponentCards && !players[currentPlayer].isAI && currentPlayer !== lastTurnPlayer) {
+            // Count human players
+            const humanPlayerCount = players.filter(p => !p.isAI).length;
+
+            // Show turn reveal overlay only if:
+            // 1. Hide opponent cards is enabled
+            // 2. There are 2+ human players (no need for overlay with only 1 human vs AI)
+            // 3. Current player is human
+            // 4. It's a different player from who last acted
+            if (settings.hideOpponentCards && humanPlayerCount > 1 && !players[currentPlayer].isAI && currentPlayer !== lastTurnPlayer) {
                 turnRevealed = false;
                 showTurnRevealOverlay();
             } else {
