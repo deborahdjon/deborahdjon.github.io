@@ -1013,6 +1013,10 @@
                         skipNext = false;
                         nextTurn();
                         nextTurn();
+                        // If AI got another turn (e.g., after flip+skip in 2-player), trigger AI
+                        if (players[currentPlayer].isAI) {
+                            setTimeout(() => aiTakeTurn(), 1000);
+                        }
                     }
                     updateUI();
                 }, 2000);
@@ -1026,6 +1030,10 @@
                 skipNext = false;
                 nextTurn();
                 nextTurn();
+                // If AI got another turn (e.g., Skip/Reverse in 2-player), trigger AI
+                if (players[currentPlayer].isAI) {
+                    setTimeout(() => aiTakeTurn(), 1000);
+                }
             }
 
             updateUI();
