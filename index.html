@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>UNO Flip! Enhanced</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 1200px;
+            width: 100%;
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .settings-icon {
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-size: 1.8em;
+            cursor: pointer;
+            padding: 10px;
+            transition: transform 0.2s;
+        }
+
+        .settings-icon:hover {
+            transform: rotate(45deg);
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+            padding: 12px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .info-item {
+            text-align: center;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .info-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .center-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #e8e8e8;
+            border-radius: 15px;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            width: 100px;
+            height: 150px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            user-select: none;
+        }
+
+        .card:active {
+            transform: scale(0.95);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+
+        .card.disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .card.disabled:hover {
+            transform: none;
+        }
+
+        .card-back {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+        }
+
+        .card-hidden {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            color: white;
+        }
+
+        .card-light {
+            border: 3px solid #333;
+        }
+
+        .card-dark {
+            border: 3px solid #111;
+        }
+
+        .card-red { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white; }
+        .card-blue { background: linear-gradient(135deg, #4ecdc4 0%, #44a3f7 100%); color: white; }
+        .card-green { background: linear-gradient(135deg, #95e1d3 0%, #38ada9 100%); color: white; }
+        .card-yellow { background: linear-gradient(135deg, #ffe66d 0%, #ffca3a 100%); color: #333; }
+
+        .card-pink { background: linear-gradient(135deg, #ff6b9d 0%, #c73866 100%); color: white; }
+        .card-teal { background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%); color: white; }
+        .card-purple { background: linear-gradient(135deg, #a044ff 0%, #6a0dad 100%); color: white; }
+        .card-orange { background: linear-gradient(135deg, #ff9a56 0%, #ff6b45 100%); color: white; }
+
+        .card-content {
+            font-size: 2em;
+        }
+
+        .card-type {
+            font-size: 0.5em;
+            margin-top: 8px;
+        }
+
+        .player-section {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 10px;
+            transition: background 0.3s;
+        }
+
+        .player-section.active {
+            background: #d4edda;
+            border: 3px solid #28a745;
+        }
+
+        .player-section.inactive {
+            background: #f8f9fa;
+            border: 3px solid #ddd;
+        }
+
+        .player-section.ai {
+            background: #e7f3ff;
+        }
+
+        .player-section.ai.active {
+            background: #cfe7ff;
+            border: 3px solid #007bff;
+        }
+
+        .player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .player-name {
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .card-count {
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .hand {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .hand .card {
+            width: 85px;
+            height: 130px;
+            font-size: 1.4em;
+        }
+
+        .hand .card-content {
+            font-size: 1.8em;
+        }
+
+        .hand .card-type {
+            font-size: 0.5em;
+        }
+
+        .button {
+            padding: 10px 25px;
+            font-size: 1em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s, transform 0.1s;
+            touch-action: manipulation;
+        }
+
+        .button:hover {
+            transform: scale(1.05);
+        }
+
+        .button:active {
+            transform: scale(0.95);
+        }
+
+        .button-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .button-primary:hover {
+            background: #5568d3;
+        }
+
+        .button-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .button-danger:hover {
+            background: #c82333;
+        }
+
+        .button-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .button-success:hover {
+            background: #218838;
+        }
+
+        .button-warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .button-warning:hover {
+            background: #e0a800;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .message {
+            text-align: center;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1em;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .message.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .color-selector {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .color-choice {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 4px solid #333;
+            transition: transform 0.2s;
+        }
+
+        .color-choice:hover {
+            transform: scale(1.1);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .settings-group {
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .settings-group label {
+            display: block;
+            margin: 10px 0;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .settings-group select,
+        .settings-group input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        .checkbox-label {
+            display: flex !important;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .side-indicator {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .side-light {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .side-dark {
+            background: #4a4a4a;
+            color: white;
+        }
+
+        #deck {
+            min-width: 100px;
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .settings-icon {
+                font-size: 1.4em;
+                padding: 5px;
+            }
+
+            .center-area {
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .card {
+                width: 80px;
+                height: 120px;
+                font-size: 1.5em;
+            }
+
+            .hand .card {
+                width: 70px;
+                height: 105px;
+                font-size: 1.2em;
+            }
+
+            .hand .card-content {
+                font-size: 1.5em;
+            }
+
+            .info-item {
+                min-width: 80px;
+            }
+
+            .info-value {
+                font-size: 1em;
+            }
+
+            .button {
+                padding: 8px 20px;
+                font-size: 0.9em;
+            }
+
+            .color-choice {
+                width: 60px;
+                height: 60px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.3em;
+            }
+
+            .hand .card {
+                width: 60px;
+                height: 90px;
+                font-size: 1em;
+            }
+
+            .hand .card-content {
+                font-size: 1.3em;
+            }
+
+            .hand .card-type {
+                font-size: 0.45em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🎴 UNO Flip! 🎴</h1>
+            <div class="settings-icon" onclick="showSettings()">⚙️</div>
+        </div>
+
+        <div class="game-info">
+            <div class="info-item">
+                <div class="info-label">Current Side</div>
+                <div class="info-value">
+                    <span id="currentSide" class="side-indicator side-light">Light</span>
+                </div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Direction</div>
+                <div class="info-value" id="direction">➡️</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Cards Left</div>
+                <div class="info-value" id="deckCount">0</div>
+            </div>
+        </div>
+
+        <div id="message" class="message" style="display: none;"></div>
+
+        <div class="center-area">
+            <div class="card card-back" id="deck" onclick="drawCard()">
+                <div>DRAW</div>
+            </div>
+            <div class="card" id="discardPile">
+                <div class="card-content">?</div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="button button-success" onclick="callUno()">UNO!</button>
+            <button class="button button-warning" id="endTurnBtn" onclick="endTurn()" style="display: none;">End Turn</button>
+            <button class="button button-primary" onclick="showSettings()">Settings</button>
+        </div>
+
+        <div id="playersContainer"></div>
+
+        <!-- Color Selection Modal -->
+        <div id="colorModal" class="modal">
+            <div class="modal-content">
+                <h2>Choose a Color</h2>
+                <div class="color-selector" id="colorSelector"></div>
+            </div>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div id="gameOverModal" class="modal">
+            <div class="modal-content">
+                <h2 id="winnerText"></h2>
+                <button class="button button-primary" onclick="newGame()">Play Again</button>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal">
+            <div class="modal-content">
+                <h2>⚙️ Game Settings</h2>
+
+                <div class="settings-group">
+                    <label>Number of Players:</label>
+                    <select id="playerCount">
+                        <option value="2">2 Players</option>
+                        <option value="3">3 Players</option>
+                        <option value="4">4 Players</option>
+                    </select>
+                </div>
+
+                <div class="settings-group">
+                    <label>AI Players:</label>
+                    <select id="aiCount">
+                        <option value="0">No AI</option>
+                        <option value="1">1 AI Player</option>
+                        <option value="2">2 AI Players</option>
+                        <option value="3">3 AI Players</option>
+                    </select>
+                </div>
+
+                <div class="settings-group">
+                    <label>AI Difficulty:</label>
+                    <select id="aiDifficulty">
+                        <option value="easy">Easy</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+
+                <div class="settings-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="hideOpponentCards">
+                        Hide Opponent Cards
+                    </label>
+                </div>
+
+                <div class="settings-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="autoEndTurn">
+                        Auto End Turn After Draw (if can't play)
+                    </label>
+                </div>
+
+                <div class="actions">
+                    <button class="button button-success" onclick="applySettingsAndStart()">Start New Game</button>
+                    <button class="button button-danger" onclick="hideModal('settingsModal')">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const COLORS_LIGHT = ['red', 'blue', 'green', 'yellow'];
+        const COLORS_DARK = ['pink', 'teal', 'purple', 'orange'];
+
+        // Game state
+        let deck = [];
+        let discardPile = [];
+        let players = [];
+        let currentPlayer = 0;
+        let currentSide = 'light';
+        let direction = 1;
+        let skipNext = false;
+        let hasDrawnThisTurn = false;
+
+        // Settings
+        let settings = {
+            playerCount: 2,
+            aiCount: 0,
+            aiDifficulty: 'medium',
+            hideOpponentCards: false,
+            autoEndTurn: false
+        };
+
+        function createDeck() {
+            const deck = [];
+
+            // Light side cards
+            COLORS_LIGHT.forEach(color => {
+                for (let i = 1; i <= 9; i++) {
+                    deck.push({ side: 'light', color, value: i });
+                    deck.push({ side: 'light', color, value: i });
+                }
+                deck.push({ side: 'light', color, value: 0 });
+
+                ['skip', 'reverse', 'draw1'].forEach(action => {
+                    deck.push({ side: 'light', color, type: action });
+                    deck.push({ side: 'light', color, type: action });
+                });
+            });
+
+            for (let i = 0; i < 4; i++) {
+                deck.push({ side: 'light', type: 'wild', color: 'wild' });
+                deck.push({ side: 'light', type: 'wild-draw2', color: 'wild' });
+                deck.push({ side: 'light', type: 'flip', color: 'wild' });
+            }
+
+            // Dark side cards
+            COLORS_DARK.forEach(color => {
+                for (let i = 1; i <= 9; i++) {
+                    deck.push({ side: 'dark', color, value: i });
+                    deck.push({ side: 'dark', color, value: i });
+                }
+                deck.push({ side: 'dark', color, value: 0 });
+
+                ['skip', 'reverse', 'draw5'].forEach(action => {
+                    deck.push({ side: 'dark', color, type: action });
+                    deck.push({ side: 'dark', color, type: action });
+                });
+            });
+
+            for (let i = 0; i < 4; i++) {
+                deck.push({ side: 'dark', type: 'wild', color: 'wild' });
+                deck.push({ side: 'dark', type: 'wild-drawcolor', color: 'wild' });
+                deck.push({ side: 'dark', type: 'flip', color: 'wild' });
+            }
+
+            return shuffleDeck(deck);
+        }
+
+        function shuffleDeck(deck) {
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+            return deck;
+        }
+
+        function dealCards() {
+            players.forEach(player => {
+                player.hand = [];
+                for (let i = 0; i < 7; i++) {
+                    if (deck.length === 0) reshuffleDeck();
+                    player.hand.push(deck.pop());
+                }
+            });
+
+            let startCard;
+            do {
+                if (deck.length === 0) reshuffleDeck();
+                startCard = deck.pop();
+            } while (startCard.type && startCard.type !== 'wild');
+
+            discardPile = [startCard];
+        }
+
+        function initializePlayers() {
+            players = [];
+            const humanPlayers = settings.playerCount - settings.aiCount;
+
+            for (let i = 0; i < humanPlayers; i++) {
+                players.push({
+                    name: `Player ${i + 1}`,
+                    hand: [],
+                    calledUno: false,
+                    isAI: false
+                });
+            }
+
+            for (let i = 0; i < settings.aiCount; i++) {
+                players.push({
+                    name: `AI ${i + 1}`,
+                    hand: [],
+                    calledUno: false,
+                    isAI: true
+                });
+            }
+        }
+
+        function newGame() {
+            deck = createDeck();
+            discardPile = [];
+            initializePlayers();
+            currentPlayer = 0;
+            currentSide = 'light';
+            direction = 1;
+            skipNext = false;
+            hasDrawnThisTurn = false;
+
+            dealCards();
+            hideModal('gameOverModal');
+            hideModal('settingsModal');
+            updateUI();
+            showMessage(`${players[0].name}'s turn!`, 'info');
+
+            if (players[currentPlayer].isAI) {
+                setTimeout(() => aiTakeTurn(), 1000);
+            }
+        }
+
+        function drawCard() {
+            if (currentPlayer !== getCurrentPlayerIndex()) return;
+            if (players[currentPlayer].isAI) return;
+
+            if (deck.length === 0) {
+                reshuffleDeck();
+            }
+
+            const card = deck.pop();
+            players[currentPlayer].hand.push(card);
+            players[currentPlayer].calledUno = false;
+            hasDrawnThisTurn = true;
+
+            updateUI();
+
+            // Check if the drawn card can be played
+            const topCard = discardPile[discardPile.length - 1];
+            if (canPlayCard(card, topCard)) {
+                showMessage(`Drew a card. You can play it or end your turn.`, 'info');
+                document.getElementById('endTurnBtn').style.display = 'inline-block';
+            } else {
+                showMessage(`Drew a card. Cannot play it.`, 'warning');
+                if (settings.autoEndTurn) {
+                    setTimeout(() => endTurn(), 1000);
+                } else {
+                    document.getElementById('endTurnBtn').style.display = 'inline-block';
+                }
+            }
+        }
+
+        function endTurn() {
+            if (!hasDrawnThisTurn) {
+                showMessage('You must draw a card before ending your turn!', 'warning');
+                return;
+            }
+
+            hasDrawnThisTurn = false;
+            document.getElementById('endTurnBtn').style.display = 'none';
+            nextTurn();
+            updateUI();
+
+            if (players[currentPlayer].isAI) {
+                setTimeout(() => aiTakeTurn(), 1000);
+            }
+        }
+
+        function reshuffleDeck() {
+            if (discardPile.length <= 1) return;
+
+            const topCard = discardPile.pop();
+            deck = shuffleDeck(discardPile);
+            discardPile = [topCard];
+            showMessage('Deck reshuffled!', 'warning');
+        }
+
+        function playCard(playerIndex, cardIndex) {
+            if (playerIndex !== currentPlayer) return;
+            if (players[playerIndex].isAI) return;
+
+            const card = players[playerIndex].hand[cardIndex];
+            const topCard = discardPile[discardPile.length - 1];
+
+            if (!canPlayCard(card, topCard)) {
+                showMessage('Cannot play that card!', 'warning');
+                return;
+            }
+
+            players[playerIndex].hand.splice(cardIndex, 1);
+            hasDrawnThisTurn = false;
+            document.getElementById('endTurnBtn').style.display = 'none';
+
+            if (card.type === 'wild' || card.type === 'wild-draw2' || card.type === 'wild-drawcolor') {
+                showColorSelector(card);
+            } else {
+                discardPile.push(card);
+                executeCardAction(card);
+                checkWin();
+            }
+        }
+
+        function canPlayCard(card, topCard) {
+            if (card.side !== currentSide) return false;
+
+            if (card.type === 'wild' || card.type === 'wild-draw2' || card.type === 'wild-drawcolor' || card.type === 'flip') return true;
+
+            if (card.color === topCard.color) return true;
+            if (card.value !== undefined && card.value === topCard.value) return true;
+            if (card.type && card.type === topCard.type) return true;
+
+            return false;
+        }
+
+        function executeCardAction(card) {
+            if (card.type === 'skip') {
+                skipNext = true;
+                showMessage(`Next player skipped!`, 'warning');
+            } else if (card.type === 'reverse') {
+                if (players.length === 2) {
+                    skipNext = true;
+                    showMessage(`Skip! (Reverse in 2-player)`, 'warning');
+                } else {
+                    direction *= -1;
+                    showMessage(`Direction reversed!`, 'warning');
+                }
+                updateDirectionUI();
+            } else if (card.type === 'draw1') {
+                const nextPlayer = getNextPlayer();
+                drawMultiple(nextPlayer, 1);
+                skipNext = true;
+            } else if (card.type === 'draw5') {
+                const nextPlayer = getNextPlayer();
+                drawMultiple(nextPlayer, 5);
+                skipNext = true;
+            } else if (card.type === 'flip') {
+                flipDeck();
+            }
+
+            if (!skipNext || card.type === 'flip') {
+                nextTurn();
+            } else {
+                skipNext = false;
+                nextTurn();
+                nextTurn();
+            }
+
+            updateUI();
+
+            if (players[currentPlayer].isAI) {
+                setTimeout(() => aiTakeTurn(), 1500);
+            }
+        }
+
+        function drawMultiple(playerIndex, count) {
+            for (let i = 0; i < count; i++) {
+                if (deck.length === 0) reshuffleDeck();
+                players[playerIndex].hand.push(deck.pop());
+            }
+            players[playerIndex].calledUno = false;
+            showMessage(`${players[playerIndex].name} draws ${count} card${count > 1 ? 's' : ''}!`, 'warning');
+        }
+
+        function flipDeck() {
+            currentSide = currentSide === 'light' ? 'dark' : 'light';
+
+            players.forEach(player => {
+                player.hand = player.hand.map(card => flipCard(card));
+            });
+
+            discardPile = discardPile.map(card => flipCard(card));
+            deck = deck.map(card => flipCard(card));
+
+            showMessage(`🔄 FLIP! Now playing ${currentSide} side!`, 'success');
+            updateUI();
+        }
+
+        function flipCard(card) {
+            if (card.side === 'light') {
+                const colorIndex = COLORS_LIGHT.indexOf(card.color);
+                return {
+                    side: 'dark',
+                    color: colorIndex !== -1 ? COLORS_DARK[colorIndex] : card.color,
+                    value: card.value,
+                    type: card.type === 'draw1' ? 'draw5' : (card.type === 'wild-draw2' ? 'wild-drawcolor' : card.type)
+                };
+            } else {
+                const colorIndex = COLORS_DARK.indexOf(card.color);
+                return {
+                    side: 'light',
+                    color: colorIndex !== -1 ? COLORS_LIGHT[colorIndex] : card.color,
+                    value: card.value,
+                    type: card.type === 'draw5' ? 'draw1' : (card.type === 'wild-drawcolor' ? 'wild-draw2' : card.type)
+                };
+            }
+        }
+
+        function showColorSelector(card) {
+            const modal = document.getElementById('colorModal');
+            const selector = document.getElementById('colorSelector');
+            selector.innerHTML = '';
+
+            const colors = currentSide === 'light' ? COLORS_LIGHT : COLORS_DARK;
+
+            colors.forEach(color => {
+                const div = document.createElement('div');
+                div.className = `color-choice card-${color}`;
+                div.onclick = () => {
+                    card.color = color;
+                    discardPile.push(card);
+                    hideModal('colorModal');
+
+                    if (card.type === 'wild-draw2') {
+                        drawMultiple(getNextPlayer(), 2);
+                        skipNext = true;
+                    } else if (card.type === 'wild-drawcolor') {
+                        const count = Math.floor(Math.random() * 4) + 1;
+                        drawMultiple(getNextPlayer(), count);
+                        skipNext = true;
+                    }
+
+                    executeCardAction(card);
+                    checkWin();
+                };
+                selector.appendChild(div);
+            });
+
+            modal.classList.add('show');
+        }
+
+        function hideModal(id) {
+            document.getElementById(id).classList.remove('show');
+        }
+
+        function getNextPlayer() {
+            return (currentPlayer + direction + players.length) % players.length;
+        }
+
+        function nextTurn() {
+            currentPlayer = getNextPlayer();
+            hasDrawnThisTurn = false;
+            document.getElementById('endTurnBtn').style.display = 'none';
+            players.forEach(p => p.calledUno = false);
+            showMessage(`${players[currentPlayer].name}'s turn!`, 'info');
+        }
+
+        function getCurrentPlayerIndex() {
+            return currentPlayer;
+        }
+
+        function callUno() {
+            if (players[currentPlayer].hand.length === 2) {
+                players[currentPlayer].calledUno = true;
+                showMessage(`${players[currentPlayer].name} called UNO!`, 'success');
+            } else {
+                showMessage(`You don't have 2 cards!`, 'warning');
+            }
+        }
+
+        function checkWin() {
+            players.forEach((player, index) => {
+                if (player.hand.length === 0) {
+                    showWinner(index);
+                } else if (player.hand.length === 1 && !player.calledUno) {
+                    showMessage(`${player.name} forgot to call UNO! Drawing 2 cards!`, 'warning');
+                    drawMultiple(index, 2);
+                }
+            });
+        }
+
+        function showWinner(playerIndex) {
+            const modal = document.getElementById('gameOverModal');
+            const text = document.getElementById('winnerText');
+            text.textContent = `🎉 ${players[playerIndex].name} Wins! 🎉`;
+            modal.classList.add('show');
+        }
+
+        // AI Functions
+        function aiTakeTurn() {
+            if (!players[currentPlayer].isAI) return;
+
+            const topCard = discardPile[discardPile.length - 1];
+            const playableCards = players[currentPlayer].hand
+                .map((card, index) => ({ card, index }))
+                .filter(item => canPlayCard(item.card, topCard));
+
+            if (playableCards.length > 0) {
+                // AI card selection based on difficulty
+                let selectedCard;
+
+                if (settings.aiDifficulty === 'easy') {
+                    selectedCard = playableCards[Math.floor(Math.random() * playableCards.length)];
+                } else if (settings.aiDifficulty === 'medium') {
+                    selectedCard = selectMediumAICard(playableCards, topCard);
+                } else {
+                    selectedCard = selectHardAICard(playableCards, topCard);
+                }
+
+                const card = selectedCard.card;
+                players[currentPlayer].hand.splice(selectedCard.index, 1);
+
+                // Auto-call UNO for AI
+                if (players[currentPlayer].hand.length === 1) {
+                    players[currentPlayer].calledUno = true;
+                    showMessage(`${players[currentPlayer].name} called UNO!`, 'success');
+                }
+
+                if (card.type === 'wild' || card.type === 'wild-draw2' || card.type === 'wild-drawcolor') {
+                    const colors = currentSide === 'light' ? COLORS_LIGHT : COLORS_DARK;
+                    card.color = aiChooseColor(colors);
+                    discardPile.push(card);
+
+                    if (card.type === 'wild-draw2') {
+                        drawMultiple(getNextPlayer(), 2);
+                        skipNext = true;
+                    } else if (card.type === 'wild-drawcolor') {
+                        const count = Math.floor(Math.random() * 4) + 1;
+                        drawMultiple(getNextPlayer(), count);
+                        skipNext = true;
+                    }
+                }else {
+                    discardPile.push(card);
+                }
+
+                executeCardAction(card);
+                checkWin();
+            } else {
+                if (deck.length === 0) reshuffleDeck();
+                const drawnCard = deck.pop();
+                players[currentPlayer].hand.push(drawnCard);
+                showMessage(`${players[currentPlayer].name} drew a card.`, 'info');
+
+                setTimeout(() => {
+                    if (canPlayCard(drawnCard, topCard) && Math.random() > 0.3) {
+                        const cardIndex = players[currentPlayer].hand.length - 1;
+                        players[currentPlayer].hand.splice(cardIndex, 1);
+
+                        if (drawnCard.type === 'wild' || drawnCard.type === 'wild-draw2' || drawnCard.type === 'wild-drawcolor') {
+                            const colors = currentSide === 'light' ? COLORS_LIGHT : COLORS_DARK;
+                            drawnCard.color = aiChooseColor(colors);
+                            discardPile.push(drawnCard);
+
+                            if (drawnCard.type === 'wild-draw2') {
+                                drawMultiple(getNextPlayer(), 2);
+                                skipNext = true;
+                            } else if (drawnCard.type === 'wild-drawcolor') {
+                                const count = Math.floor(Math.random() * 4) + 1;
+                                drawMultiple(getNextPlayer(), count);
+                                skipNext = true;
+                            }
+                        } else {
+                            discardPile.push(drawnCard);
+                        }
+
+                        executeCardAction(drawnCard);
+                        checkWin();
+                    } else {
+                        nextTurn();
+                        updateUI();
+                        if (players[currentPlayer].isAI) {
+                            setTimeout(() => aiTakeTurn(), 1000);
+                        }
+                    }
+                }, 800);
+            }
+        }
+
+        function selectMediumAICard(playableCards, topCard) {
+            const actionCards = playableCards.filter(item => item.card.type && item.card.type !== 'wild');
+            if (actionCards.length > 0 && Math.random() > 0.5) {
+                return actionCards[Math.floor(Math.random() * actionCards.length)];
+            }
+            return playableCards[Math.floor(Math.random() * playableCards.length)];
+        }
+
+        function selectHardAICard(playableCards, topCard) {
+            const drawCards = playableCards.filter(item =>
+                item.card.type && (item.card.type.includes('draw') || item.card.type === 'skip'));
+            if (drawCards.length > 0) return drawCards[0];
+
+            const colorMatches = playableCards.filter(item => item.card.color === topCard.color);
+            if (colorMatches.length > 0) {
+                return colorMatches[colorMatches.length - 1];
+            }
+
+            return playableCards[playableCards.length - 1];
+        }
+
+        function aiChooseColor(colors) {
+            const hand = players[currentPlayer].hand;
+            const colorCounts = {};
+
+            colors.forEach(color => {
+                colorCounts[color] = hand.filter(card => card.color === color).length;
+            });
+
+            return colors.reduce((a, b) => colorCounts[a] > colorCounts[b] ? a : b);
+        }
+
+        // UI Functions
+        function renderCard(card, onClick = null, playerIndex = null, cardIndex = null, isHidden = false) {
+            const div = document.createElement('div');
+
+            if (isHidden) {
+                div.className = 'card card-hidden';
+                div.innerHTML = `<div class="card-content">🎴</div>`;
+                return div;
+            }
+
+            const colors = currentSide === 'light' ? COLORS_LIGHT : COLORS_DARK;
+
+            let colorClass = '';
+            if (card.color && colors.includes(card.color)) {
+                colorClass = `card-${card.color}`;
+            } else if (card.type && (card.type.includes('wild') || card.type === 'flip')) {
+                colorClass = 'card-back';
+            }
+
+            div.className = `card ${colorClass} card-${card.side}`;
+
+            let content = '';
+            let typeText = '';
+
+            if (card.value !== undefined) {
+                content = card.value;
+            } else if (card.type === 'skip') {
+                content = '🚫';
+                typeText = 'Skip';
+            } else if (card.type === 'reverse') {
+                content = '🔄';
+                typeText = 'Reverse';
+            } else if (card.type === 'draw1') {
+                content = '+1';
+                typeText = 'Draw';
+            } else if (card.type === 'draw5') {
+                content = '+5';
+                typeText = 'Draw';
+            } else if (card.type === 'wild') {
+                content = '🌈';
+                typeText = 'Wild';
+            } else if (card.type === 'wild-draw2') {
+                content = '+2';
+                typeText = 'Wild';
+            } else if (card.type === 'wild-drawcolor') {
+                content = '🎲';
+                typeText = 'Wild';
+            } else if (card.type === 'flip') {
+                content = '🔄';
+                typeText = 'FLIP';
+            }
+
+            div.innerHTML = `
+                <div class="card-content">${content}</div>
+                ${typeText ? `<div class="card-type">${typeText}</div>` : ''}
+            `;
+
+            if (onClick) {
+                div.onclick = () => onClick(playerIndex, cardIndex);
+                const topCard = discardPile[discardPile.length - 1];
+                if (!canPlayCard(card, topCard) || playerIndex !== currentPlayer) {
+                    div.classList.add('disabled');
+                    div.onclick = null;
+                }
+            }
+
+            return div;
+        }
+
+        function updateUI() {
+            document.getElementById('deckCount').textContent = deck.length;
+
+            const sideIndicator = document.getElementById('currentSide');
+            sideIndicator.textContent = currentSide.charAt(0).toUpperCase() + currentSide.slice(1);
+            sideIndicator.className = `side-indicator side-${currentSide}`;
+
+            const discardDiv = document.getElementById('discardPile');
+            if (discardPile.length > 0) {
+                const topCard = discardPile[discardPile.length - 1];
+                const cardElement = renderCard(topCard);
+                discardDiv.className = cardElement.className;
+                discardDiv.innerHTML = cardElement.innerHTML;
+            }
+
+            const container = document.getElementById('playersContainer');
+            container.innerHTML = '';
+
+            players.forEach((player, index) => {
+                const section = document.createElement('div');
+                const isActive = index === currentPlayer;
+                section.className = `player-section ${isActive ? 'active' : 'inactive'} ${player.isAI ? 'ai' : ''}`;
+
+                const header = document.createElement('div');
+                header.className = 'player-header';
+                header.innerHTML = `
+                    <span class="player-name">${player.isAI ? '🤖' : '🎮'} ${player.name}</span>
+                    <span class="card-count">${player.hand.length} card${player.hand.length !== 1 ? 's' : ''}</span>
+                `;
+
+                const handDiv = document.createElement('div');
+                handDiv.className = 'hand';
+
+                const shouldHideCards = settings.hideOpponentCards && index !== currentPlayer && !player.isAI;
+
+                player.hand.forEach((card, cardIndex) => {
+                    const cardElement = renderCard(
+                        card,
+                        index === currentPlayer && !player.isAI ? playCard : null,
+                        index,
+                        cardIndex,
+                        shouldHideCards
+                    );
+                    handDiv.appendChild(cardElement);
+                });
+
+                section.appendChild(header);
+                section.appendChild(handDiv);
+                container.appendChild(section);
+            });
+        }
+
+        function updateDirectionUI() {
+            const arrows = direction === 1 ? '➡️' : '⬅️';
+            document.getElementById('direction').textContent = arrows;
+        }
+
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = `message ${type}`;
+            msg.style.display = 'block';
+        }
+
+        function showSettings() {
+            document.getElementById('settingsModal').classList.add('show');
+        }
+
+        function applySettingsAndStart() {
+            settings.playerCount = parseInt(document.getElementById('playerCount').value);
+            settings.aiCount = Math.min(parseInt(document.getElementById('aiCount').value), settings.playerCount - 1);
+            settings.aiDifficulty = document.getElementById('aiDifficulty').value;
+            settings.hideOpponentCards = document.getElementById('hideOpponentCards').checked;
+            settings.autoEndTurn = document.getElementById('autoEndTurn').checked;
+
+            newGame();
+        }
+
+        // Initialize game on load
+        newGame();
+    </script>
+</body>
+</html>
