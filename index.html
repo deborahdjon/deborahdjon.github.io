@@ -178,13 +178,6 @@
             padding: 15px 40px;
         }
 
-        .card-light {
-            border: 3px solid #333;
-        }
-
-        .card-dark {
-            border: 3px solid #111;
-        }
 
         .card-red { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white; }
         .card-blue { background: linear-gradient(135deg, #4ecdc4 0%, #44a3f7 100%); color: white; }
@@ -460,14 +453,22 @@
             font-size: 0.9em;
         }
 
-        .side-light {
+        .side-mild {
             background: #fff3cd;
             color: #856404;
         }
 
-        .side-dark {
+        .side-wild {
             background: #4a4a4a;
             color: white;
+        }
+
+        .card-mild {
+            border: 3px solid #333;
+        }
+
+        .card-wild-mode {
+            border: 3px solid #111;
         }
 
         #deck {
@@ -558,9 +559,9 @@
 
         <div class="game-info">
             <div class="info-item">
-                <div class="info-label">Current Side</div>
+                <div class="info-label">Current Mode</div>
                 <div class="info-value">
-                    <span id="currentSide" class="side-indicator side-light">Light</span>
+                    <span id="currentSide" class="side-indicator side-mild">Mild</span>
                 </div>
             </div>
             <div class="info-item">
@@ -670,15 +671,15 @@
     </div>
 
     <script>
-        const COLORS_LIGHT = ['red', 'blue', 'green', 'yellow'];
-        const COLORS_DARK = ['pink', 'teal', 'purple', 'orange'];
+        const COLORS_MILD = ['red', 'blue', 'green', 'yellow'];
+        const COLORS_WILD = ['pink', 'teal', 'purple', 'orange'];
 
         // Game state
         let deck = [];
         let discardPile = [];
         let players = [];
         let currentPlayer = 0;
-        let currentSide = 'light';
+        let currentSide = 'mild';
         let direction = 1;
         let skipNext = false;
         let hasDrawnThisTurn = false;
@@ -694,49 +695,79 @@
         };
 
         function createDeck() {
-            const deck = [];
+            const mildCards = [];
+            const wildCards = [];
 
-            // Light side cards
-            COLORS_LIGHT.forEach(color => {
+            // Mild side cards
+            COLORS_MILD.forEach(color => {
+                // Numbers 1-9 (2 of each)
                 for (let i = 1; i <= 9; i++) {
-                    deck.push({ side: 'light', color, value: i });
-                    deck.push({ side: 'light', color, value: i });
+                    mildCards.push({ color, value: i });
+                    mildCards.push({ color, value: i });
                 }
-                deck.push({ side: 'light', color, value: 0 });
+                // One 0
+                mildCards.push({ color, value: 0 });
 
+                // Action cards (2 of each)
                 ['skip', 'reverse', 'draw1'].forEach(action => {
-                    deck.push({ side: 'light', color, type: action });
-                    deck.push({ side: 'light', color, type: action });
+                    mildCards.push({ color, type: action });
+                    mildCards.push({ color, type: action });
                 });
             });
 
+            // Mild special cards
             for (let i = 0; i < 4; i++) {
-                deck.push({ side: 'light', type: 'wild', color: 'wild' });
-                deck.push({ side: 'light', type: 'wild-draw2', color: 'wild' });
-                deck.push({ side: 'light', type: 'flip', color: 'wild' });
+                mildCards.push({ type: 'choose' });
+                mildCards.push({ type: 'choose-draw2' });
+                mildCards.push({ type: 'flip' });
             }
 
-            // Dark side cards
-            COLORS_DARK.forEach(color => {
+            // Wild side cards
+            COLORS_WILD.forEach(color => {
+                // Numbers 1-9 (2 of each)
                 for (let i = 1; i <= 9; i++) {
-                    deck.push({ side: 'dark', color, value: i });
-                    deck.push({ side: 'dark', color, value: i });
+                    wildCards.push({ color, value: i });
+                    wildCards.push({ color, value: i });
                 }
-                deck.push({ side: 'dark', color, value: 0 });
+                // One 0
+                wildCards.push({ color, value: 0 });
 
-                ['skip', 'reverse', 'draw5'].forEach(action => {
-                    deck.push({ side: 'dark', color, type: action });
-                    deck.push({ side: 'dark', color, type: action });
+                // Action cards (2 of each)
+                ['skip-everyone', 'reverse', 'draw5'].forEach(action => {
+                    wildCards.push({ color, type: action });
+                    wildCards.push({ color, type: action });
                 });
             });
 
+            // Wild special cards
             for (let i = 0; i < 4; i++) {
-                deck.push({ side: 'dark', type: 'wild', color: 'wild' });
-                deck.push({ side: 'dark', type: 'wild-drawcolor', color: 'wild' });
-                deck.push({ side: 'dark', type: 'flip', color: 'wild' });
+                wildCards.push({ type: 'choose' });
+                wildCards.push({ type: 'choose-drawcolor' });
+                wildCards.push({ type: 'flip' });
+            }
+
+            // Shuffle both pools independently
+            shuffleArray(mildCards);
+            shuffleArray(wildCards);
+
+            // Zip them together to create two-sided cards
+            const deck = [];
+            const cardCount = Math.min(mildCards.length, wildCards.length);
+            for (let i = 0; i < cardCount; i++) {
+                deck.push({
+                    mild: mildCards[i],
+                    wild: wildCards[i]
+                });
             }
 
             return shuffleDeck(deck);
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
         }
 
         function shuffleDeck(deck) {
@@ -756,11 +787,12 @@
                 }
             });
 
+            // Find a number card to start (on current side)
             let startCard;
             do {
                 if (deck.length === 0) reshuffleDeck();
                 startCard = deck.pop();
-            } while (startCard.type && startCard.type !== 'wild');
+            } while (startCard[currentSide].type);
 
             discardPile = [startCard];
         }
@@ -793,7 +825,7 @@
             discardPile = [];
             initializePlayers();
             currentPlayer = 0;
-            currentSide = 'light';
+            currentSide = 'mild';
             direction = 1;
             skipNext = false;
             hasDrawnThisTurn = false;
@@ -874,11 +906,15 @@
                 return;
             }
 
+            // Remove entire two-sided card from hand
             players[playerIndex].hand.splice(cardIndex, 1);
             hasDrawnThisTurn = false;
             document.getElementById('endTurnBtn').style.display = 'none';
 
-            if (card.type === 'wild' || card.type === 'wild-draw2' || card.type === 'wild-drawcolor') {
+            const currentCardSide = card[currentSide];
+
+            // Check if it's a choose color card
+            if (currentCardSide.type && (currentCardSide.type === 'choose' || currentCardSide.type === 'choose-draw2' || currentCardSide.type === 'choose-drawcolor')) {
                 showColorSelector(card);
             } else {
                 discardPile.push(card);
@@ -888,22 +924,44 @@
         }
 
         function canPlayCard(card, topCard) {
-            if (card.side !== currentSide) return false;
+            const currentCardSide = card[currentSide];
+            const topCardSide = topCard[currentSide];
 
-            if (card.type === 'wild' || card.type === 'wild-draw2' || card.type === 'wild-drawcolor' || card.type === 'flip') return true;
+            // Choose and flip cards can always be played
+            if (currentCardSide.type && (currentCardSide.type.includes('choose') || currentCardSide.type === 'flip')) {
+                return true;
+            }
 
-            if (card.color === topCard.color) return true;
-            if (card.value !== undefined && card.value === topCard.value) return true;
-            if (card.type && card.type === topCard.type) return true;
+            // Match color
+            if (currentCardSide.color && currentCardSide.color === topCardSide.color) {
+                return true;
+            }
+
+            // Match value
+            if (currentCardSide.value !== undefined && currentCardSide.value === topCardSide.value) {
+                return true;
+            }
+
+            // Match type
+            if (currentCardSide.type && currentCardSide.type === topCardSide.type) {
+                return true;
+            }
 
             return false;
         }
 
         function executeCardAction(card) {
-            if (card.type === 'skip') {
+            const currentCardSide = card[currentSide];
+
+            if (currentCardSide.type === 'skip') {
                 skipNext = true;
                 showMessage(`Next player skipped!`, 'warning');
-            } else if (card.type === 'reverse') {
+            } else if (currentCardSide.type === 'skip-everyone') {
+                // Skip Everyone gives current player an extra turn (Wild side only)
+                showMessage(`Skip Everyone! You get another turn!`, 'success');
+                updateUI();
+                return; // Don't advance turn
+            } else if (currentCardSide.type === 'reverse') {
                 if (players.length === 2) {
                     skipNext = true;
                     showMessage(`Skip! (Reverse in 2-player)`, 'warning');
@@ -912,16 +970,16 @@
                     showMessage(`Direction reversed!`, 'warning');
                 }
                 updateDirectionUI();
-            } else if (card.type === 'draw1') {
+            } else if (currentCardSide.type === 'draw1') {
                 const nextPlayer = getNextPlayer();
                 drawMultiple(nextPlayer, 1);
                 skipNext = true;
-            } else if (card.type === 'draw5') {
+            } else if (currentCardSide.type === 'draw5') {
                 const nextPlayer = getNextPlayer();
                 drawMultiple(nextPlayer, 5);
                 skipNext = true;
-            } else if (card.type === 'flip') {
-                flipDeck();
+            } else if (currentCardSide.type === 'flip') {
+                flipAllCards();
                 // Show flipped cards for 2 seconds before next turn
                 setTimeout(() => {
                     if (!skipNext) {
@@ -956,44 +1014,19 @@
             showMessage(`${players[playerIndex].name} draws ${count} card${count > 1 ? 's' : ''}!`, 'warning');
         }
 
-        function flipDeck() {
-            currentSide = currentSide === 'light' ? 'dark' : 'light';
+        function flipAllCards() {
+            // Switch the current side/mode
+            currentSide = currentSide === 'mild' ? 'wild' : 'mild';
 
             // Temporarily reveal all cards to show the flip
-            const wasRevealed = turnRevealed;
             turnRevealed = true;
 
-            players.forEach(player => {
-                player.hand = player.hand.map(card => flipCard(card));
-            });
-
-            discardPile = discardPile.map(card => flipCard(card));
-            deck = deck.map(card => flipCard(card));
-
-            showMessage(`🔄 FLIP! Now playing ${currentSide} side! All cards are flipped!`, 'success');
+            const modeText = currentSide === 'mild' ? 'Mild' : 'Wild';
+            showMessage(`🔄 FLIP! Now playing ${modeText} mode! All cards flipped!`, 'success');
             updateUI();
 
-            // Note: turnRevealed will be reset by nextTurn() if needed
-        }
-
-        function flipCard(card) {
-            if (card.side === 'light') {
-                const colorIndex = COLORS_LIGHT.indexOf(card.color);
-                return {
-                    side: 'dark',
-                    color: colorIndex !== -1 ? COLORS_DARK[colorIndex] : card.color,
-                    value: card.value,
-                    type: card.type === 'draw1' ? 'draw5' : (card.type === 'wild-draw2' ? 'wild-drawcolor' : card.type)
-                };
-            } else {
-                const colorIndex = COLORS_DARK.indexOf(card.color);
-                return {
-                    side: 'light',
-                    color: colorIndex !== -1 ? COLORS_LIGHT[colorIndex] : card.color,
-                    value: card.value,
-                    type: card.type === 'draw5' ? 'draw1' : (card.type === 'wild-drawcolor' ? 'wild-draw2' : card.type)
-                };
-            }
+            // Note: Cards don't need to be transformed - they already have both sides
+            // turnRevealed will be reset by nextTurn() if needed
         }
 
         function showColorSelector(card) {
@@ -1001,22 +1034,36 @@
             const selector = document.getElementById('colorSelector');
             selector.innerHTML = '';
 
-            const colors = currentSide === 'light' ? COLORS_LIGHT : COLORS_DARK;
+            const colors = currentSide === 'mild' ? COLORS_MILD : COLORS_WILD;
+            const currentCardSide = card[currentSide];
 
             colors.forEach(color => {
                 const div = document.createElement('div');
                 div.className = `color-choice card-${color}`;
                 div.onclick = () => {
-                    card.color = color;
+                    // Set the color on the current side of the card
+                    currentCardSide.color = color;
                     discardPile.push(card);
                     hideModal('colorModal');
 
-                    if (card.type === 'wild-draw2') {
+                    if (currentCardSide.type === 'choose-draw2') {
                         drawMultiple(getNextPlayer(), 2);
                         skipNext = true;
-                    } else if (card.type === 'wild-drawcolor') {
-                        const count = Math.floor(Math.random() * 4) + 1;
-                        drawMultiple(getNextPlayer(), count);
+                    } else if (currentCardSide.type === 'choose-drawcolor') {
+                        // Draw until they get the chosen color
+                        const nextPlayerIndex = getNextPlayer();
+                        let drawn = 0;
+                        let foundColor = false;
+                        while (!foundColor && drawn < 20) { // Max 20 to prevent infinite loop
+                            if (deck.length === 0) reshuffleDeck();
+                            const drawnCard = deck.pop();
+                            players[nextPlayerIndex].hand.push(drawnCard);
+                            drawn++;
+                            if (drawnCard[currentSide].color === color) {
+                                foundColor = true;
+                            }
+                        }
+                        showMessage(`${players[nextPlayerIndex].name} drew ${drawn} card${drawn > 1 ? 's' : ''}!`, 'warning');
                         skipNext = true;
                     }
 
@@ -1134,20 +1181,32 @@
                     showMessage(`${players[currentPlayer].name} called UNO!`, 'success');
                 }
 
-                if (card.type === 'wild' || card.type === 'wild-draw2' || card.type === 'wild-drawcolor') {
-                    const colors = currentSide === 'light' ? COLORS_LIGHT : COLORS_DARK;
-                    card.color = aiChooseColor(colors);
+                const currentCardSide = card[currentSide];
+                if (currentCardSide.type && currentCardSide.type.includes('choose')) {
+                    const colors = currentSide === 'mild' ? COLORS_MILD : COLORS_WILD;
+                    currentCardSide.color = aiChooseColor(colors);
                     discardPile.push(card);
 
-                    if (card.type === 'wild-draw2') {
+                    if (currentCardSide.type === 'choose-draw2') {
                         drawMultiple(getNextPlayer(), 2);
                         skipNext = true;
-                    } else if (card.type === 'wild-drawcolor') {
-                        const count = Math.floor(Math.random() * 4) + 1;
-                        drawMultiple(getNextPlayer(), count);
+                    } else if (currentCardSide.type === 'choose-drawcolor') {
+                        const nextPlayerIndex = getNextPlayer();
+                        let drawn = 0;
+                        let foundColor = false;
+                        while (!foundColor && drawn < 20) {
+                            if (deck.length === 0) reshuffleDeck();
+                            const drawnCard = deck.pop();
+                            players[nextPlayerIndex].hand.push(drawnCard);
+                            drawn++;
+                            if (drawnCard[currentSide].color === currentCardSide.color) {
+                                foundColor = true;
+                            }
+                        }
+                        showMessage(`${players[nextPlayerIndex].name} drew ${drawn} card${drawn > 1 ? 's' : ''}!`, 'warning');
                         skipNext = true;
                     }
-                }else {
+                } else {
                     discardPile.push(card);
                 }
 
@@ -1164,17 +1223,29 @@
                         const cardIndex = players[currentPlayer].hand.length - 1;
                         players[currentPlayer].hand.splice(cardIndex, 1);
 
-                        if (drawnCard.type === 'wild' || drawnCard.type === 'wild-draw2' || drawnCard.type === 'wild-drawcolor') {
-                            const colors = currentSide === 'light' ? COLORS_LIGHT : COLORS_DARK;
-                            drawnCard.color = aiChooseColor(colors);
+                        const drawnCardSide = drawnCard[currentSide];
+                        if (drawnCardSide.type && drawnCardSide.type.includes('choose')) {
+                            const colors = currentSide === 'mild' ? COLORS_MILD : COLORS_WILD;
+                            drawnCardSide.color = aiChooseColor(colors);
                             discardPile.push(drawnCard);
 
-                            if (drawnCard.type === 'wild-draw2') {
+                            if (drawnCardSide.type === 'choose-draw2') {
                                 drawMultiple(getNextPlayer(), 2);
                                 skipNext = true;
-                            } else if (drawnCard.type === 'wild-drawcolor') {
-                                const count = Math.floor(Math.random() * 4) + 1;
-                                drawMultiple(getNextPlayer(), count);
+                            } else if (drawnCardSide.type === 'choose-drawcolor') {
+                                const nextPlayerIndex = getNextPlayer();
+                                let drawn = 0;
+                                let foundColor = false;
+                                while (!foundColor && drawn < 20) {
+                                    if (deck.length === 0) reshuffleDeck();
+                                    const newCard = deck.pop();
+                                    players[nextPlayerIndex].hand.push(newCard);
+                                    drawn++;
+                                    if (newCard[currentSide].color === drawnCardSide.color) {
+                                        foundColor = true;
+                                    }
+                                }
+                                showMessage(`${players[nextPlayerIndex].name} drew ${drawn} card${drawn > 1 ? 's' : ''}!`, 'warning');
                                 skipNext = true;
                             }
                         } else {
@@ -1192,7 +1263,10 @@
         }
 
         function selectMediumAICard(playableCards, topCard) {
-            const actionCards = playableCards.filter(item => item.card.type && item.card.type !== 'wild');
+            const actionCards = playableCards.filter(item => {
+                const cardSide = item.card[currentSide];
+                return cardSide.type && !cardSide.type.includes('choose');
+            });
             if (actionCards.length > 0 && Math.random() > 0.5) {
                 return actionCards[Math.floor(Math.random() * actionCards.length)];
             }
@@ -1200,11 +1274,19 @@
         }
 
         function selectHardAICard(playableCards, topCard) {
-            const drawCards = playableCards.filter(item =>
-                item.card.type && (item.card.type.includes('draw') || item.card.type === 'skip'));
+            // Prefer draw cards and skip cards
+            const drawCards = playableCards.filter(item => {
+                const cardSide = item.card[currentSide];
+                return cardSide.type && (cardSide.type.includes('draw') || cardSide.type.includes('skip'));
+            });
             if (drawCards.length > 0) return drawCards[0];
 
-            const colorMatches = playableCards.filter(item => item.card.color === topCard.color);
+            // Then prefer color matches
+            const topCardSide = topCard[currentSide];
+            const colorMatches = playableCards.filter(item => {
+                const cardSide = item.card[currentSide];
+                return cardSide.color && cardSide.color === topCardSide.color;
+            });
             if (colorMatches.length > 0) {
                 return colorMatches[colorMatches.length - 1];
             }
@@ -1217,70 +1299,80 @@
             const colorCounts = {};
 
             colors.forEach(color => {
-                colorCounts[color] = hand.filter(card => card.color === color).length;
+                colorCounts[color] = hand.filter(card => {
+                    const cardSide = card[currentSide];
+                    return cardSide.color === color;
+                }).length;
             });
 
             return colors.reduce((a, b) => colorCounts[a] > colorCounts[b] ? a : b);
         }
 
         // UI Functions
-        function renderCard(card, onClick = null, playerIndex = null, cardIndex = null, isHidden = false) {
+        function renderCard(card, onClick = null, playerIndex = null, cardIndex = null, showOpposite = false) {
             const div = document.createElement('div');
 
-            if (isHidden) {
+            // Determine which side of the card to show
+            // If showOpposite is true (opponent card backs), show the opposite mode
+            const sideToShow = showOpposite ? (currentSide === 'mild' ? 'wild' : 'mild') : currentSide;
+            const cardData = card[sideToShow];
+
+            if (!cardData) {
+                console.error('Card data missing for side:', sideToShow, card);
                 div.className = 'card card-hidden';
-                div.innerHTML = `<div class="card-content">🎴</div>`;
+                div.innerHTML = `<div class="card-content">?</div>`;
                 return div;
             }
 
-            const colors = currentSide === 'light' ? COLORS_LIGHT : COLORS_DARK;
-
             let colorClass = '';
 
-            // Check if card matches current side
-            if (card.side !== currentSide) {
-                // Card is on wrong side - this shouldn't happen after flip, show as error
-                colorClass = 'card-hidden';
-                console.warn('Card side mismatch:', card, 'Current side:', currentSide);
-            } else if (card.color && colors.includes(card.color)) {
-                colorClass = `card-${card.color}`;
-            } else if (card.type && (card.type.includes('wild') || card.type === 'flip')) {
+            // Determine color class
+            if (cardData.color) {
+                const colors = sideToShow === 'mild' ? COLORS_MILD : COLORS_WILD;
+                if (colors.includes(cardData.color)) {
+                    colorClass = `card-${cardData.color}`;
+                } else {
+                    colorClass = 'card-wild'; // Fallback for choose cards
+                }
+            } else if (cardData.type && (cardData.type.includes('choose') || cardData.type === 'flip')) {
                 colorClass = 'card-wild';
             } else {
-                // Fallback for any other cards without proper color
                 colorClass = 'card-wild';
-                console.warn('Card without proper color:', card);
             }
 
-            div.className = `card ${colorClass} card-${card.side}`;
+            const modeClass = sideToShow === 'mild' ? 'card-mild' : 'card-wild-mode';
+            div.className = `card ${colorClass} ${modeClass}`;
 
             let content = '';
             let typeText = '';
 
-            if (card.value !== undefined) {
-                content = card.value;
-            } else if (card.type === 'skip') {
+            if (cardData.value !== undefined) {
+                content = cardData.value;
+            } else if (cardData.type === 'skip') {
                 content = '🚫';
                 typeText = 'Skip';
-            } else if (card.type === 'reverse') {
+            } else if (cardData.type === 'skip-everyone') {
+                content = '⏩';
+                typeText = 'Skip All';
+            } else if (cardData.type === 'reverse') {
                 content = '🔄';
                 typeText = 'Reverse';
-            } else if (card.type === 'draw1') {
+            } else if (cardData.type === 'draw1') {
                 content = '+1';
                 typeText = 'Draw';
-            } else if (card.type === 'draw5') {
+            } else if (cardData.type === 'draw5') {
                 content = '+5';
                 typeText = 'Draw';
-            } else if (card.type === 'wild') {
+            } else if (cardData.type === 'choose') {
                 content = '🌈';
-                typeText = 'Wild';
-            } else if (card.type === 'wild-draw2') {
+                typeText = 'Choose';
+            } else if (cardData.type === 'choose-draw2') {
                 content = '+2';
-                typeText = 'Wild';
-            } else if (card.type === 'wild-drawcolor') {
+                typeText = 'Choose';
+            } else if (cardData.type === 'choose-drawcolor') {
                 content = '🎲';
-                typeText = 'Wild';
-            } else if (card.type === 'flip') {
+                typeText = 'Draw Color';
+            } else if (cardData.type === 'flip') {
                 content = '🔄';
                 typeText = 'FLIP';
             }
@@ -1335,29 +1427,41 @@
                 const handDiv = document.createElement('div');
                 handDiv.className = 'hand';
 
-                // Only show current player's hand if turn is revealed OR if hideOpponentCards is off
-                // In hot-seat mode, hide ALL opponent cards (including AI)
-                const shouldShowHand = !settings.hideOpponentCards || (index === currentPlayer && turnRevealed);
+                const isCurrentPlayer = index === currentPlayer;
 
-                if (shouldShowHand) {
+                // Determine what to show
+                if (settings.hideOpponentCards && !isCurrentPlayer) {
+                    // Hot-seat mode: Show card backs (opposite side) for opponents
                     player.hand.forEach((card, cardIndex) => {
                         const cardElement = renderCard(
                             card,
-                            index === currentPlayer && !player.isAI && turnRevealed ? playCard : null,
+                            null, // No click handler for opponent cards
                             index,
                             cardIndex,
-                            false
+                            true // showOpposite=true to show card backs
                         );
                         handDiv.appendChild(cardElement);
                     });
-                } else {
-                    // Show message instead of cards for hidden players
+                } else if (settings.hideOpponentCards && isCurrentPlayer && !turnRevealed) {
+                    // Current player hasn't revealed yet
                     const hiddenMsg = document.createElement('div');
                     hiddenMsg.style.padding = '20px';
                     hiddenMsg.style.color = '#999';
                     hiddenMsg.style.fontStyle = 'italic';
-                    hiddenMsg.textContent = index === currentPlayer ? 'Tap "Show My Cards" to reveal' : 'Hidden';
+                    hiddenMsg.textContent = 'Tap "Show My Cards" to reveal';
                     handDiv.appendChild(hiddenMsg);
+                } else {
+                    // Show current side of cards
+                    player.hand.forEach((card, cardIndex) => {
+                        const cardElement = renderCard(
+                            card,
+                            isCurrentPlayer && !player.isAI && turnRevealed ? playCard : null,
+                            index,
+                            cardIndex,
+                            false // showOpposite=false to show current side
+                        );
+                        handDiv.appendChild(cardElement);
+                    });
                 }
 
                 section.appendChild(header);
